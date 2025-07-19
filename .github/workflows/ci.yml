@@ -1,4 +1,4 @@
-name: MetaCleaner Plugin CI
+name: Top Active Courses Plugin CI
 
 on: [push, pull_request]
 
