@@ -1,0 +1,74 @@
+name: Top Active Courses Plugin CI
+
+on: [push, pull_request]
+
+jobs:
+  code-checks:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: moodle
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 3
+
+      mariadb:
+        image: mariadb:10
+        env:
+          MYSQL_USER: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: moodle
+        ports:
+          - 3306:3306
+        options: --health-cmd "mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2']
+        database: [pgsql, mariadb]
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: intl, soap
+          tools: composer
+
+      - name: Install moodle-plugin-ci
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
+          echo "$(cd ci/bin; pwd)" >> $GITHUB_PATH
+          echo "$(cd ci/vendor/bin; pwd)" >> $GITHUB_PATH
+          export PATH=$PATH:$(cd ci/bin; pwd)
+          export PATH=$PATH:$(cd ci/vendor/bin; pwd)
+
+      - name: Install Moodle Codechecker
+        run: |
+          git clone --depth 1 https://github.com/moodlehq/moodle-local_codechecker.git local/codechecker
+          git clone --depth 1 https://github.com/moodlehq/moodle-local_moodlecheck.git local/moodlecheck
+          composer require --working-dir=local/codechecker moodlehq/moodle-cs --dev
+          composer config --working-dir=local/codechecker --no-interaction allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+
+      - name: Moodle Code Checker (PHPCS)
+        run: moodle-plugin-ci phpcs ./plugin
+
+      - name: PHP Lint
+        run: moodle-plugin-ci phplint ./plugin
+
+      - name: PHP Mess Detector
+        run: moodle-plugin-ci phpmd ./plugin
+
+      - name: Check savepoints
+        run: moodle-plugin-ci savepoints ./plugin
