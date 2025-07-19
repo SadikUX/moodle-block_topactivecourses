@@ -16,13 +16,13 @@
 }
 
 .topactivecourses-tiles::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
     transition: background-color 0.3s ease;
 }
 
 .topactivecourses-tiles::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fadeInTiles {
@@ -44,14 +44,14 @@
     overflow: visible;
     background: #fff;
     transition: box-shadow 0.2s, transform 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
     margin-bottom: 1.5rem;
     vertical-align: top;
 }
 
 
 .topactivecourses-tile:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
     transform: translateY(-4px) scale(1.03);
 }
 
@@ -83,15 +83,12 @@
 
 @media (max-width: 900px) {
     .topactivecourses-tile {
-        flex: 1 1 45%;
-        max-width: 48%;
-        min-width: 50% !important;
+        flex: 0 0 75%;
     }
 }
+
 @media (max-width: 600px) {
     .topactivecourses-tile {
-        flex: 1 1 95%;
-        max-width: 100%;
-        min-width: 50% !important;
+        flex: 0 0 75%;
     }
 }
