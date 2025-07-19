@@ -40,7 +40,7 @@ class block_topactivecourses extends block_base {
      * @return stdClass
      */
     public function get_content() {
-        global $USER, $DB, $OUTPUT;
+        global $USER;
 
         if ($this->content !== null) {
             return $this->content;
@@ -49,50 +49,148 @@ class block_topactivecourses extends block_base {
         $this->content = new stdClass();
         $this->content->text = '';
 
-        $since = time() - (7 * 24 * 60 * 60); // Last 7 days.
+        $since = $this->get_since_timestamp();
+        $records = $this->get_top_course_records($since);
+        $filtered = $this->filter_courses($records, $USER);
+        $topx = $this->get_topx_limit();
 
-        // Get top courses by user activity.
+        $tiles = $this->render_course_tiles($filtered, $topx, $USER);
+
+        if (empty($tiles)) {
+            $this->content->text = get_string('nocourses', 'block_topactivecourses');
+        } else {
+            $this->content->text = html_writer::start_div('topactivecourses-tiles') . implode('', $tiles) . html_writer::end_div();
+        }
+
+        return $this->content;
+    }
+
+    /**
+     * Calculates the timestamp for the configured number of days in the past.
+     *
+     * @return int Unix timestamp representing the cutoff time.
+     */
+    private function get_since_timestamp(): int {
+        $days = get_config('block_topactivecourses', 'since_days');
+        if (!$days || !is_numeric($days)) {
+            $days = 7;
+        }
+        return time() - ($days * 24 * 60 * 60);
+    }
+
+    /**
+     * Retrieves the number of top courses to display from the plugin settings.
+     *
+     * @return int Number of courses to show, defaults to 10 if not set or invalid.
+     */
+    private function get_topx_limit(): int {
+        $topx = get_config('block_topactivecourses', 'topx');
+        return ($topx && is_numeric($topx)) ? (int)$topx : 10;
+    }
+
+    /**
+     * Retrieves the most active courses since the given timestamp based on log activity.
+     *
+     * @param int $since Unix timestamp to filter log entries.
+     * @return array List of course activity records.
+     */
+    private function get_top_course_records(int $since): array {
+        global $DB;
+
         $sql = "
-            SELECT courseid, COUNT(DISTINCT userid) AS usercount
-            FROM {logstore_standard_log}
-            WHERE timecreated > :since
-              AND courseid > 1
-              AND userid > 0
-            GROUP BY courseid
-            ORDER BY usercount DESC
-        ";
+        SELECT courseid, COUNT(DISTINCT userid) AS usercount, COUNT(*) AS logcount
+        FROM {logstore_standard_log}
+        WHERE timecreated > :since
+          AND courseid > 1
+          AND userid > 0
+          AND component = 'core'
+        GROUP BY courseid
+        ORDER BY logcount DESC
+    ";
 
-        $params = ['since' => $since];
-        $records = $DB->get_records_sql($sql, $params, 0, 50);
+        return $DB->get_records_sql($sql, ['since' => $since], 0, 50);
+    }
 
-        $shown = 0;
-        $tiles = [];
+    /**
+     * Filters out courses that the user is already enrolled in or cannot self-enrol into.
+     *
+     * @param array $records List of course activity records.
+     * @param stdClass $user The user to check enrolment against.
+     * @return array Filtered list of courses the user can self-enrol into.
+     */
+    private function filter_courses(array $records, stdClass $user): array {
+        $filtered = [];
 
         foreach ($records as $rec) {
             $course = get_course($rec->courseid);
             $context = context_course::instance($course->id);
 
-            // Skip if user is already enrolled.
-            if (is_enrolled($context, $USER)) {
+            if (is_enrolled($context, $user)) {
                 continue;
             }
 
-            // Check if self-enrolment is enabled.
             $enrols = enrol_get_instances($course->id, true);
             $selfenrol = false;
+
             foreach ($enrols as $enrol) {
                 if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
                     $selfenrol = true;
                     break;
                 }
             }
+
+            if ($selfenrol) {
+                $filtered[] = $rec;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Renders the course tiles for display.
+     *
+     * @param array $records Filtered course activity records.
+     * @param int $limit Maximum number of tiles to render.
+     * @param stdClass $user The current user, used to check enrolments.
+     * @return array Array of HTML strings representing course tiles.
+     */
+    private function render_course_tiles(array $records, int $limit, stdClass $user): array {
+        global $OUTPUT;
+
+        $tiles = [];
+        $shown = 0;
+
+        foreach ($records as $rec) {
+            if ($shown >= $limit) {
+                break;
+            }
+
+            $course = get_course($rec->courseid);
+            $context = context_course::instance($course->id);
+
+            if (is_enrolled($context, $user)) {
+                continue;
+            }
+
+            $enrols = enrol_get_instances($course->id, true);
+            $selfenrol = false;
+
+            foreach ($enrols as $enrol) {
+                if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
+                    $selfenrol = true;
+                    break;
+                }
+            }
+
             if (!$selfenrol) {
                 continue;
             }
 
-            // Get course image.
-            $overviewfiles = core_course\external\course_summary_exporter::get_course_image($course);
-            $courseimage = $overviewfiles ?: $OUTPUT->image_url('noimage', 'theme')->out();
+            $image = core_course\external\course_summary_exporter::get_course_image($course);
+            if (!$image) {
+                $image = 'https://picsum.photos/400/200?random=' . $course->id;
+            }
 
             $url = new moodle_url('/course/view.php', ['id' => $course->id]);
             $title = format_string($course->fullname);
@@ -100,7 +198,7 @@ class block_topactivecourses extends block_base {
             $tiles[] = html_writer::start_div('topactivecourses-tile card')
                 . html_writer::start_tag('a', ['href' => $url, 'class' => 'topactivecourses-link'])
                 . html_writer::empty_tag('img', [
-                    'src' => $courseimage,
+                    'src' => $image,
                     'class' => 'card-img-top topactivecourses-img',
                     'alt' => $title,
                 ])
@@ -111,18 +209,9 @@ class block_topactivecourses extends block_base {
                 . html_writer::end_div();
 
             $shown++;
-            if ($shown >= 10) {
-                break;
-            }
         }
 
-        if ($shown === 0) {
-            $this->content->text = get_string('nocourses', 'block_topactivecourses');
-        } else {
-            $this->content->text = html_writer::start_div('topactivecourses-tiles') . implode('', $tiles) . html_writer::end_div();
-        }
-
-        return $this->content;
+        return $tiles;
     }
 
     /**
@@ -131,6 +220,6 @@ class block_topactivecourses extends block_base {
      * @return bool
      */
     public function has_config() {
-        return false;
+        return true;
     }
 }

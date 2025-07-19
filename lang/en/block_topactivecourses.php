@@ -22,10 +22,18 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['next'] = 'Next';
 $string['nocourses'] = 'No popular courses available for you right now.';
 
 $string['pluginname'] = 'Top Active Courses';
+$string['previous'] = 'Previous';
+$string['privacy:metadata'] = 'The Top Active Courses plugin does not store any personal data.';
+
+$string['since_days'] = 'Time range in days';
+$string['since_days_desc'] = 'Number of days to look back when determining top active courses. For example, 7 means the last 7 days.';
 
 $string['topactivecourses:addinstance'] = 'Add a new Top Active Courses block';
 $string['topactivecourses:myaddinstance'] = 'Add a new Top Active Courses block to the dashboard';
-
+$string['topactivecourses_intro'] = 'The most popular courses are determined based on the number of unique user interactions within a specified time period. By default, user activities from the last X days are considered to reflect the current popularity.';
+$string['topx'] = 'Top X courses';
+$string['topx_desc'] = 'Specifies how many courses should be considered when determining the most active ones.';
