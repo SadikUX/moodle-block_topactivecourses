@@ -48,8 +48,16 @@ class block_topactivecourses extends block_base {
         $this->content = new stdClass();
         $this->content->text = '';
 
+        $cache = cache::make('block_topactivecourses', 'topcourses');
         $since = $this->get_since_timestamp();
-        $records = $this->get_top_course_records($since);
+        $cachekey = 'topcourses_' . $since;
+        $records = $cache->get($cachekey);
+
+        if ($records === false) {
+            $records = $this->get_top_course_records($since);
+            $cache->set($cachekey, $records);
+        }
+
         $filtered = $this->filter_courses($records, $USER);
         $topx = $this->get_topx_limit();
 

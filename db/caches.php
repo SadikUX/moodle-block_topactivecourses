@@ -15,17 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version metadata for the block_topactivecourses plugin.
+ * Cache definitions for block_topactivecourses.
  *
  * @package   block_topactivecourses
- * @copyright 2025, Sadik Mert <sadikmert@hotmail.de>
+ * @copyright 2025 Sadik Mert <sadikmert@hotmail.de>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version = 2025072402;
-$plugin->requires = 2022041900;
-$plugin->component = 'block_topactivecourses';
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '1.0.0';
+$definitions = [
+    'topcourses' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simplekeys' => true,
+        'simpledata' => true,
+        'ttl' => 3600, // Default: 1 hour (can be changed in backend)
+    ],
+];
