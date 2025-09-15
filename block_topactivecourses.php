@@ -130,41 +130,60 @@ class block_topactivecourses extends block_base {
         $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
 
         foreach ($records as $rec) {
-            $course = get_course($rec->courseid);
-            $context = context_course::instance($course->id);
-
-            if (is_enrolled($context, $user)) {
-                continue;
-            }
-
-            if ($ignoreenrol) {
-                $filtered[] = $rec;
-                continue;
-            }
-
-            $enrols = enrol_get_instances($course->id, true);
-            $canenrol = false;
-
-            foreach ($enrols as $enrol) {
-                if ($enrol->status != ENROL_INSTANCE_ENABLED) {
-                    continue;
-                }
-                $plugin = enrol_get_plugin($enrol->enrol);
-                if ($plugin && method_exists($plugin, 'can_self_enrol')) {
-                    $result = $plugin->can_self_enrol($enrol);
-                    if ($result === true) {
-                        $canenrol = true;
-                        break;
-                    }
-                }
-            }
-
-            if ($canenrol) {
+            if ($this->should_include_course($rec, $user, $ignoreenrol)) {
                 $filtered[] = $rec;
             }
         }
 
         return $filtered;
+    }
+
+    /**
+     * Determines if a course should be included in the filtered list.
+     *
+     * @param stdClass $rec Course record.
+     * @param stdClass $user Current user.
+     * @param bool $ignoreenrol Whether to ignore enrolment method checks.
+     * @return bool True if course should be included.
+     */
+    private function should_include_course(stdClass $rec, stdClass $user, bool $ignoreenrol): bool {
+        $course = get_course($rec->courseid);
+        $context = context_course::instance($course->id);
+
+        if (is_enrolled($context, $user)) {
+            return false;
+        }
+
+        if ($ignoreenrol) {
+            return true;
+        }
+
+        return $this->can_self_enrol_in_course($course->id);
+    }
+
+    /**
+     * Checks if self-enrolment is possible for a course.
+     *
+     * @param int $courseid Course ID.
+     * @return bool True if self-enrolment is possible.
+     */
+    private function can_self_enrol_in_course(int $courseid): bool {
+        $enrols = enrol_get_instances($courseid, true);
+
+        foreach ($enrols as $enrol) {
+            if ($enrol->status != ENROL_INSTANCE_ENABLED) {
+                continue;
+            }
+            $plugin = enrol_get_plugin($enrol->enrol);
+            if ($plugin && method_exists($plugin, 'can_self_enrol')) {
+                $result = $plugin->can_self_enrol($enrol);
+                if ($result === true) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -180,60 +199,18 @@ class block_topactivecourses extends block_base {
 
         $tilesdata = [];
         $shown = 0;
-        $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
 
         foreach ($records as $rec) {
             if ($shown >= $limit) {
                 break;
             }
 
-            $course = get_course($rec->courseid);
-            $context = context_course::instance($course->id);
-
-            if (is_enrolled($context, $user)) {
+            $coursedata = $this->prepare_course_data($rec, $user);
+            if ($coursedata === null) {
                 continue;
             }
 
-            if (!$ignoreenrol) {
-                $enrols = enrol_get_instances($course->id, true);
-                $selfenrol = false;
-
-                foreach ($enrols as $enrol) {
-                    if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
-                        $selfenrol = true;
-                        break;
-                    }
-                }
-
-                if (!$selfenrol) {
-                    continue;
-                }
-            }
-
-            $image = core_course\external\course_summary_exporter::get_course_image($course);
-            if (!$image) {
-                $image = 'https://picsum.photos/400/200?random=' . $course->id;
-            }
-
-            $url = (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
-            $title = format_string($course->fullname);
-
-            // Get max tags.
-            $maxtags = get_config('block_topactivecourses', 'max_tags');
-
-            // Additional check for max_tags and default value.
-            if (!$maxtags || !is_numeric($maxtags) || $maxtags < 1) {
-                $maxtags = 5;
-            }
-
-            $tagnames = $this->get_course_tags($course->id, (int)$maxtags);
-
-            $tilesdata[] = [
-                'url' => $url,
-                'image' => $image,
-                'title' => $title,
-                'tags' => $tagnames,
-            ];
+            $tilesdata[] = $coursedata;
             $shown++;
         }
 
@@ -243,6 +220,84 @@ class block_topactivecourses extends block_base {
 
         $html = $OUTPUT->render_from_template('block_topactivecourses/course_tiles', ['courses' => $tilesdata]);
         return [$html];
+    }
+
+    /**
+     * Prepares course data for tile rendering.
+     *
+     * @param stdClass $rec Course record.
+     * @param stdClass $user Current user.
+     * @return array|null Course data array or null if course should be skipped.
+     */
+    private function prepare_course_data(stdClass $rec, stdClass $user): ?array {
+        $course = get_course($rec->courseid);
+        $context = context_course::instance($course->id);
+
+        if (is_enrolled($context, $user)) {
+            return null;
+        }
+
+        if (!$this->can_user_access_course($course, $user)) {
+            return null;
+        }
+
+        return [
+            'url' => (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false),
+            'image' => $this->get_course_image($course),
+            'title' => format_string($course->fullname),
+            'tags' => $this->get_course_tags($course->id, $this->get_max_tags_limit()),
+        ];
+    }
+
+    /**
+     * Checks if user can access the course based on enrolment settings.
+     *
+     * @param stdClass $course Course object.
+     * @param stdClass $user User object.
+     * @return bool True if user can access.
+     */
+    private function can_user_access_course(stdClass $course, stdClass $user): bool {
+        $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
+
+        if ($ignoreenrol) {
+            return true;
+        }
+
+        $enrols = enrol_get_instances($course->id, true);
+        foreach ($enrols as $enrol) {
+            if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets the course image or a fallback.
+     *
+     * @param stdClass $course Course object.
+     * @return string Image URL.
+     */
+    private function get_course_image(stdClass $course): string {
+        $image = core_course\external\course_summary_exporter::get_course_image($course);
+        if (!$image) {
+            $image = 'https://picsum.photos/400/200?random=' . $course->id;
+        }
+        return $image;
+    }
+
+    /**
+     * Gets the maximum number of tags to display from settings.
+     *
+     * @return int Maximum number of tags.
+     */
+    private function get_max_tags_limit(): int {
+        $maxtags = get_config('block_topactivecourses', 'max_tags');
+        if (!$maxtags || !is_numeric($maxtags) || $maxtags < 1) {
+            $maxtags = 5;
+        }
+        return (int)$maxtags;
     }
 
     /**
