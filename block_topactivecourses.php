@@ -232,7 +232,7 @@ class block_topactivecourses extends block_base {
                 'url' => $url,
                 'image' => $image,
                 'title' => $title,
-                'tags' => $tagnames
+                'tags' => $tagnames,
             ];
             $shown++;
         }
