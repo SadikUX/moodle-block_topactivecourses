@@ -1,3 +1,48 @@
+:root {
+    --topactivecourses-badge-color: #0f6fc5;
+}
+
+.topactivecourses-tags {
+    margin-top: 0.5em;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25em;
+    justify-content: flex-start;
+}
+
+.topactivecourses-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: normal;
+    padding: 0.25rem 0.9rem;
+    border-radius: 1rem;
+    background-color: var(--topactivecourses-badge-color, rgba(0, 123, 255, 0.1));
+    color: #fff;
+    border: 1px solid var(--topactivecourses-badge-color, rgba(0, 123, 255, 0.2));
+    transition: all 0.2s ease;
+    margin: 0.1em 0.15em;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.block_topactivecourses.block[data-block="topactivecourses"] .topactivecourses-tags .topactivecourses-tag:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    color: #fff;
+}
+
+.block_topactivecourses.block[data-block="topactivecourses"] .topactivecourses-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.block_topactivecourses.block[data-block="topactivecourses"] .topactivecourses-tags .topactivecourses-tag,
+.block_topactivecourses.block[data-block="topactivecourses"] .topactivecourses-tags .topactivecourses-tag:hover,
+.block_topactivecourses.block[data-block="topactivecourses"] .topactivecourses-tags .topactivecourses-tag:active {
+    text-decoration: none;
+}
+
 .topactivecourses-tiles {
     display: flex;
     flex-wrap: nowrap;
@@ -5,6 +50,10 @@
     gap: 1.5rem;
     padding: 1rem;
     animation: fadeInTiles 0.6s;
+}
+
+#block-region-side-pre .block_topactivecourses .topactivecourses-tile {
+    min-width: 100%;
 }
 
 .topactivecourses-tiles::-webkit-scrollbar {
@@ -41,7 +90,6 @@
 .topactivecourses-tile {
     flex: 0 0 31%;
     box-sizing: border-box;
-    overflow: visible;
     background: #fff;
     transition: box-shadow 0.2s, transform 0.2s;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
@@ -73,7 +121,6 @@
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
 }
 
 .topactivecourses-title {

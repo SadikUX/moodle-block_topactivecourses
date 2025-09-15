@@ -1,0 +1,42 @@
+{{!
+    Template: block_topactivecourses/course_tiles
+    Description: Renders a grid of course tiles for the Top Active Courses block.
+    Context:
+        courses[]: Array of course objects with keys:
+            - url: string (course link)
+            - image: string (course image URL)
+            - title: string (course title)
+
+    Example context:
+    {
+        "courses": [
+            {
+                "url": "/course/view.php?id=2",
+                "image": "https://picsum.photos/400/200?random=2",
+                "title": "Usability Engineering"
+            },
+            {
+                "url": "/course/view.php?id=3",
+                "image": "https://picsum.photos/400/200?random=3",
+                "title": "Biologie für Anfänger"
+            }
+        ]
+    }
+}}
+<div class="topactivecourses-tiles">
+    {{#courses}}
+    <div class="topactivecourses-tile card">
+        <a href="{{url}}" class="topactivecourses-link">
+            <img src="{{image}}" class="card-img-top topactivecourses-img" alt="{{title}}">
+            <div class="card-body">
+                <h5 class="card-title topactivecourses-title">{{title}}</h5>
+                <div class="topactivecourses-tags">
+                {{#tags}}
+                    <span class="badge bg-primary topactivecourses-tag">{{.}}</span>
+                {{/tags}}
+                </div>
+            </div>
+        </a>
+    </div>
+    {{/courses}}
+</div>

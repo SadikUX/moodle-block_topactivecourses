@@ -48,4 +48,21 @@ if ($ADMIN->fulltree) {
         7, // Default value 7 days.
         PARAM_INT
     ));
+
+    // Max tags per course.
+    $settings->add(new admin_setting_configtext(
+        'block_topactivecourses/max_tags',
+        get_string('max_tags', 'block_topactivecourses'),
+        get_string('max_tags_desc', 'block_topactivecourses'),
+        5, // Default value 5 tags.
+        PARAM_INT
+    ));
+
+    // Option: Ignore enrolment methods.
+    $settings->add(new admin_setting_configcheckbox(
+        'block_topactivecourses/ignore_enrolment_methods',
+        get_string('ignore_enrolment_methods', 'block_topactivecourses'),
+        get_string('ignore_enrolment_methods_desc', 'block_topactivecourses'),
+        0
+    ));
 }

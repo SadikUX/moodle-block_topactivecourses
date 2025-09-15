@@ -22,6 +22,12 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['ignore_enrolment_methods'] = 'Ignore enrolment methods';
+$string['ignore_enrolment_methods_desc'] = 'If enabled, the block will display top active courses regardless of whether self-enrolment is available or not.';
+
+$string['max_tags'] = 'Max Tags per Course';
+$string['max_tags_desc'] = 'Specifies the maximum number of tags to display for each course.';
+
 $string['next'] = 'Next';
 $string['nocourses'] = 'No popular courses available for you right now.';
 
@@ -29,6 +35,7 @@ $string['pluginname'] = 'Top Active Courses';
 $string['previous'] = 'Previous';
 $string['privacy:metadata'] = 'The Top Active Courses plugin does not store any personal data.';
 
+$string['showcourseinfo'] = 'Show course info';
 $string['since_days'] = 'Time range in days';
 $string['since_days_desc'] = 'Number of days to look back when determining top active courses. For example, 7 means the last 7 days.';
 

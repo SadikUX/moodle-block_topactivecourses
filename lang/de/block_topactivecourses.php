@@ -22,6 +22,12 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['ignore_enrolment_methods'] = 'Ignoriere Einschreibungsmethoden';
+$string['ignore_enrolment_methods_desc'] = 'Wenn aktiviert, zeigt der Block die aktivsten Kurse unabhängig davon an, ob eine Selbsteinschreibung verfügbar ist oder nicht.';
+
+$string['max_tags'] = 'Maximale Tags pro Kurs';
+$string['max_tags_desc'] = 'Gibt die maximale Anzahl von Tags an, die für jeden Kurs angezeigt werden sollen.';
+
 $string['next'] = 'Weiter';
 $string['nocourses'] = 'Zurzeit sind keine beliebten Kurse für Sie verfügbar.';
 
@@ -29,6 +35,7 @@ $string['pluginname'] = 'Beliebte Kurse';
 $string['previous'] = 'Zurück';
 $string['privacy:metadata'] = 'Das Beliebte Kurse Plugin speichert keine personenbezogenen Daten.';
 
+$string['showcourseinfo'] = 'Kursinformationen anzeigen';
 $string['since_days'] = 'Zeitraum in Tagen';
 $string['since_days_desc'] = 'Anzahl der Tage, die zurückgerechnet werden, um die aktivsten Kurse zu ermitteln. Zum Beispiel bedeutet 7 die letzten 7 Tage.';
 

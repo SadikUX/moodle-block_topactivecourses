@@ -127,6 +127,7 @@ class block_topactivecourses extends block_base {
      */
     private function filter_courses(array $records, stdClass $user): array {
         $filtered = [];
+        $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
 
         foreach ($records as $rec) {
             $course = get_course($rec->courseid);
@@ -136,17 +137,29 @@ class block_topactivecourses extends block_base {
                 continue;
             }
 
+            if ($ignoreenrol) {
+                $filtered[] = $rec;
+                continue;
+            }
+
             $enrols = enrol_get_instances($course->id, true);
-            $selfenrol = false;
+            $canenrol = false;
 
             foreach ($enrols as $enrol) {
-                if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
-                    $selfenrol = true;
-                    break;
+                if ($enrol->status != ENROL_INSTANCE_ENABLED) {
+                    continue;
+                }
+                $plugin = enrol_get_plugin($enrol->enrol);
+                if ($plugin && method_exists($plugin, 'can_self_enrol')) {
+                    $result = $plugin->can_self_enrol($enrol);
+                    if ($result === true) {
+                        $canenrol = true;
+                        break;
+                    }
                 }
             }
 
-            if ($selfenrol) {
+            if ($canenrol) {
                 $filtered[] = $rec;
             }
         }
@@ -165,8 +178,9 @@ class block_topactivecourses extends block_base {
     private function render_course_tiles(array $records, int $limit, stdClass $user): array {
         global $OUTPUT;
 
-        $tiles = [];
+        $tilesdata = [];
         $shown = 0;
+        $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
 
         foreach ($records as $rec) {
             if ($shown >= $limit) {
@@ -180,18 +194,20 @@ class block_topactivecourses extends block_base {
                 continue;
             }
 
-            $enrols = enrol_get_instances($course->id, true);
-            $selfenrol = false;
+            if (!$ignoreenrol) {
+                $enrols = enrol_get_instances($course->id, true);
+                $selfenrol = false;
 
-            foreach ($enrols as $enrol) {
-                if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
-                    $selfenrol = true;
-                    break;
+                foreach ($enrols as $enrol) {
+                    if ($enrol->enrol === 'self' && $enrol->status == ENROL_INSTANCE_ENABLED) {
+                        $selfenrol = true;
+                        break;
+                    }
                 }
-            }
 
-            if (!$selfenrol) {
-                continue;
+                if (!$selfenrol) {
+                    continue;
+                }
             }
 
             $image = core_course\external\course_summary_exporter::get_course_image($course);
@@ -199,26 +215,58 @@ class block_topactivecourses extends block_base {
                 $image = 'https://picsum.photos/400/200?random=' . $course->id;
             }
 
-            $url = new moodle_url('/course/view.php', ['id' => $course->id]);
+            $url = (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false);
             $title = format_string($course->fullname);
 
-            $tiles[] = html_writer::start_div('topactivecourses-tile card')
-                . html_writer::start_tag('a', ['href' => $url, 'class' => 'topactivecourses-link'])
-                . html_writer::empty_tag('img', [
-                    'src' => $image,
-                    'class' => 'card-img-top topactivecourses-img',
-                    'alt' => $title,
-                ])
-                . html_writer::start_div('card-body')
-                . html_writer::tag('h5', $title, ['class' => 'card-title topactivecourses-title'])
-                . html_writer::end_div()
-                . html_writer::end_tag('a')
-                . html_writer::end_div();
+            // Get max tags.
+            $maxtags = get_config('block_topactivecourses', 'max_tags');
 
+            // Additional check for max_tags and default value.
+            if (!$maxtags || !is_numeric($maxtags) || $maxtags < 1) {
+                $maxtags = 5;
+            }
+
+            $tagnames = $this->get_course_tags($course->id, (int)$maxtags);
+
+            $tilesdata[] = [
+                'url' => $url,
+                'image' => $image,
+                'title' => $title,
+                'tags' => $tagnames
+            ];
             $shown++;
         }
 
-        return $tiles;
+        if (empty($tilesdata)) {
+            return [];
+        }
+
+        $html = $OUTPUT->render_from_template('block_topactivecourses/course_tiles', ['courses' => $tilesdata]);
+        return [$html];
+    }
+
+    /**
+     * Returns up to $limit tag names for a course.
+     *
+     * @param int $courseid
+     * @param int $limit
+     * @return array
+     */
+    private function get_course_tags(int $courseid, int $limit = 5): array {
+        if (!class_exists('core_tag_tag')) {
+            return [];
+        }
+        $tags = core_tag_tag::get_item_tags('core', 'course', $courseid);
+        $tagnames = [];
+        if (!empty($tags)) {
+            foreach ($tags as $tag) {
+                $tagnames[] = $tag->rawname;
+                if (count($tagnames) >= $limit) {
+                    break;
+                }
+            }
+        }
+        return $tagnames;
     }
 
     /**

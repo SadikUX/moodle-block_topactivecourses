@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2025072402;
+$plugin->version = 2025091503;
 $plugin->requires = 2022041900;
 $plugin->component = 'block_topactivecourses';
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '1.0.0';
+$plugin->maturity = MATURITY_BETA;
+$plugin->release = '1.1.0';
