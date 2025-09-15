@@ -1,24 +1,25 @@
 {{!
-    Template: block_topactivecourses/course_tiles
-    Description: Renders a grid of course tiles for the Top Active Courses block.
-    Context:
-        courses[]: Array of course objects with keys:
-            - url: string (course link)
-            - image: string (course image URL)
-            - title: string (course title)
+    @template block_topactivecourses/course_tiles
 
-    Example context:
+    Renders a grid of course tiles for the Top Active Courses block.
+
+    Context variables:
+    * courses - Array of course objects
+
+    Example context (json):
     {
         "courses": [
             {
                 "url": "/course/view.php?id=2",
                 "image": "https://picsum.photos/400/200?random=2",
-                "title": "Usability Engineering"
+                "title": "Mathematics 101",
+                "tags": ["math", "beginner", "algebra"]
             },
             {
                 "url": "/course/view.php?id=3",
                 "image": "https://picsum.photos/400/200?random=3",
-                "title": "Biologie für Anfänger"
+                "title": "Biology Basics",
+                "tags": ["biology", "science", "intro"]
             }
         ]
     }
