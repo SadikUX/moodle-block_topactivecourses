@@ -237,7 +237,7 @@ class block_topactivecourses extends block_base {
             return null;
         }
 
-        if (!$this->can_user_access_course($course, $user)) {
+        if (!$this->can_user_access_course($course)) {
             return null;
         }
 
@@ -253,10 +253,9 @@ class block_topactivecourses extends block_base {
      * Checks if user can access the course based on enrolment settings.
      *
      * @param stdClass $course Course object.
-     * @param stdClass $user User object.
      * @return bool True if user can access.
      */
-    private function can_user_access_course(stdClass $course, stdClass $user): bool {
+    private function can_user_access_course(stdClass $course): bool {
         $ignoreenrol = get_config('block_topactivecourses', 'ignore_enrolment_methods');
 
         if ($ignoreenrol) {
