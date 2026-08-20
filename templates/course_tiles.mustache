@@ -44,12 +44,25 @@
     {{#courses}}
     <div class="topactivecourses-tile card">
         <a href="{{url}}" class="topactivecourses-link">
-            <img src="{{image}}" class="card-img-top topactivecourses-img" alt="{{title}}">
+            <div class="topactivecourses-imgwrap">
+                <img src="{{image}}" class="card-img-top topactivecourses-img" alt="{{title}}">
+            </div>
             <div class="card-body">
                 <h5 class="card-title topactivecourses-title">{{title}}</h5>
+                {{#summary}}
+                <p class="topactivecourses-summary">{{summary}}</p>
+                {{/summary}}
+                <div class="topactivecourses-meta">
+                    {{#visitorlabel}}
+                    <span>{{visitorlabel}}</span>
+                    {{/visitorlabel}}
+                    {{#categoryname}}
+                    <span>{{categoryname}}</span>
+                    {{/categoryname}}
+                </div>
                 <div class="topactivecourses-tags">
                 {{#tags}}
-                    <span class="badge bg-primary topactivecourses-tag">{{.}}</span>
+                    <span class="badge badge-info mr-1">{{.}}</span>
                 {{/tags}}
                 </div>
             </div>

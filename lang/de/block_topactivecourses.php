@@ -31,16 +31,17 @@ $string['max_tags_desc'] = 'Gibt die maximale Anzahl von Tags an, die für jeden
 $string['next'] = 'Weiter';
 $string['nocourses'] = 'Zurzeit sind keine beliebten Kurse für Sie verfügbar.';
 
+$string['participants'] = '{$a} aktuelle Besucher:innen';
 $string['pluginname'] = 'Beliebte Kurse';
 $string['previous'] = 'Zurück';
 $string['privacy:metadata'] = 'Das Beliebte Kurse Plugin speichert keine personenbezogenen Daten.';
 
 $string['showcourseinfo'] = 'Kursinformationen anzeigen';
 $string['since_days'] = 'Zeitraum in Tagen';
-$string['since_days_desc'] = 'Anzahl der Tage, die zurückgerechnet werden, um die aktivsten Kurse zu ermitteln. Zum Beispiel bedeutet 7 die letzten 7 Tage.';
+$string['since_days_desc'] = 'Anzahl der Tage, die zurückgerechnet werden, um die aktivsten Kurse anhand aktueller Kursbesuche zu ermitteln.';
 
 $string['topactivecourses:addinstance'] = 'Einen neuen Block „Top-Aktive Kurse“ hinzufügen';
 $string['topactivecourses:myaddinstance'] = 'Einen neuen Block „Top-Aktive Kurse“ zum Dashboard hinzufügen';
-$string['topactivecourses_intro'] = 'Die beliebtesten Kurse werden anhand der Anzahl der eindeutigen Nutzerinteraktionen innerhalb eines bestimmten Zeitraums ermittelt. Standardmäßig werden die Nutzeraktivitäten der letzten X Tage berücksichtigt, um die aktuelle Beliebtheit abzubilden.';
+$string['topactivecourses_intro'] = 'Die beliebtesten Kurse werden anhand der Anzahl eindeutiger Nutzer:innen ermittelt, die einen Kurs im eingestellten Zeitraum besucht haben.';
 $string['topx'] = 'Top X Kurse';
 $string['topx_desc'] = 'Gibt an, wie viele Kurse bei der Ermittlung der aktivsten Kurse berücksichtigt werden sollen.';

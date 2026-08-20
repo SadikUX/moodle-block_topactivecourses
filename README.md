@@ -6,7 +6,7 @@ The **Top Active Courses** block is a Moodle plugin that displays a visually app
 
 ## Features
 
-- **Shows the most active courses** from the last 7 days, based on user interactions (log entries).
+- **Shows the most active courses** from the last 7 days, based on unique recent course visitors.
 - **Excludes courses** in which the current user is already enrolled.
 - **Only displays courses** where self-enrolment is enabled and available.
 - **Modern, responsive card layout** with course images, titles, and links.
@@ -15,7 +15,7 @@ The **Top Active Courses** block is a Moodle plugin that displays a visually app
 
 ## How It Works
 
-- The block queries the Moodle logstore to find courses with the highest number of unique user interactions in the last 7 days.
+- The block uses Moodle's course last-access data to find courses with the highest number of unique recent visitors in the last 7 days.
 - For each course, it checks if the current user is not enrolled and if self-enrolment is enabled.
 - The block then displays up to X (Default 10) of these courses as cards, each showing the course image, title, and a link to the course page.
 
@@ -39,7 +39,7 @@ There are two ways to install the Top Active Courses block:
 The block provides two admin settings available under **Site administration > Plugins > Blocks > Top Active Courses**:
 
 - **Top X courses**: Number of courses to display (default: 10).
-- **Time range (days)**: Number of days to look back for user activity (default: 7).
+- **Time range (days)**: Number of days to look back for recent course visits (default: 7).
 
 These settings allow site admins to customize how many and how recent the displayed courses are.
 
@@ -55,7 +55,7 @@ These settings allow site admins to customize how many and how recent the displa
 
 ## How popularity is calculated
 
-The block calculates course popularity by counting unique user interactions (log entries) in the Moodle logstore within the configured time range. Only courses with self-enrolment enabled and in which the user is not already enrolled are considered.
+The block calculates course popularity by counting unique users who visited each course within the configured time range. Only courses with self-enrolment enabled and in which the user is not already enrolled are considered.
 
 ## Privacy
 

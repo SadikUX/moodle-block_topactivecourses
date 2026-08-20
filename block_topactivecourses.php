@@ -17,7 +17,7 @@
 /**
  * Block Top Active Courses main class.
  *
- * Displays the most active courses from the last 7 days in which the user is not enrolled,
+ * Displays the most visited courses from the last 7 days in which the user is not enrolled,
  * but self-enrolment is possible.
  *
  * @package   block_topactivecourses
@@ -33,7 +33,7 @@ class block_topactivecourses extends block_base {
     }
 
     /**
-     * Returns the block content: Shows the most active courses from the last 7 days
+     * Returns the block content: Shows the most visited courses from the last 7 days
      * in which the user is not enrolled, but self-enrolment is possible.
      *
      * @return stdClass
@@ -50,11 +50,11 @@ class block_topactivecourses extends block_base {
 
         $cache = cache::make('block_topactivecourses', 'topcourses');
         $since = $this->get_since_timestamp();
-        $cachekey = 'topcourses_' . $since;
+        $cachekey = $this->get_cache_key();
         $records = $cache->get($cachekey);
 
         if ($records === false) {
-            $records = $this->get_top_course_records($since);
+            $records = $this->get_top_visited_course_records($since);
             $cache->set($cachekey, $records);
         }
 
@@ -66,7 +66,7 @@ class block_topactivecourses extends block_base {
         if (empty($tiles)) {
             $this->content->text = get_string('nocourses', 'block_topactivecourses');
         } else {
-            $this->content->text = html_writer::start_div('topactivecourses-tiles') . implode('', $tiles) . html_writer::end_div();
+            $this->content->text = implode('', $tiles);
         }
 
         return $this->content;
@@ -78,11 +78,34 @@ class block_topactivecourses extends block_base {
      * @return int Unix timestamp representing the cutoff time.
      */
     private function get_since_timestamp(): int {
+        $days = $this->get_since_days();
+        return time() - ($days * 24 * 60 * 60);
+    }
+
+    /**
+     * Retrieves the configured number of days to look back.
+     *
+     * @return int Number of days, defaults to 7 if not set or invalid.
+     */
+    private function get_since_days(): int {
         $days = get_config('block_topactivecourses', 'since_days');
         if (!$days || !is_numeric($days)) {
             $days = 7;
         }
-        return time() - ($days * 24 * 60 * 60);
+        return max(1, (int)$days);
+    }
+
+    /**
+     * Returns the cache key for the current aggregation settings.
+     *
+     * The key must not include the exact timestamp, otherwise it changes every request.
+     *
+     * @return string Cache key.
+     */
+    private function get_cache_key(): string {
+        return 'topcourses_d' . $this->get_since_days()
+            . '_t' . $this->get_topx_limit()
+            . '_i' . (int)$this->should_ignore_enrolment_methods();
     }
 
     /**
@@ -96,32 +119,77 @@ class block_topactivecourses extends block_base {
     }
 
     /**
-     * Retrieves the most active courses since the given timestamp based on log activity.
+     * Retrieves the number of aggregated records to keep before per-user filtering.
      *
-     * @param int $since Unix timestamp to filter log entries.
-     * @return array List of course activity records.
+     * @return int Number of records.
      */
-    private function get_top_course_records(int $since): array {
+    private function get_record_pool_limit(): int {
+        return max(50, $this->get_topx_limit() * 5);
+    }
+
+    /**
+     * Retrieves the most visited courses since the given timestamp.
+     *
+     * @param int $since Unix timestamp to filter course visits.
+     * @return array List of course visit records.
+     */
+    private function get_top_visited_course_records(int $since): array {
         global $DB;
 
+        $params = [
+            'since' => $since,
+        ];
+
+        $coursefilter = '';
+        if (!$this->should_ignore_enrolment_methods()) {
+            $coursefilter = "
+           AND EXISTS (
+                   SELECT 1
+                     FROM {enrol} e
+                    WHERE e.courseid = ula.courseid
+                      AND e.enrol = :enrol
+                      AND e.status = :enrolstatus
+               )";
+            $params['enrol'] = 'self';
+            $params['enrolstatus'] = ENROL_INSTANCE_ENABLED;
+        }
+
         $sql = "
-        SELECT courseid, COUNT(DISTINCT userid) AS usercount, COUNT(*) AS logcount
-        FROM {logstore_standard_log}
-        WHERE timecreated > :since
-          AND courseid > 1
-          AND userid > 0
-          AND component = 'core'
-        GROUP BY courseid
-        ORDER BY logcount DESC
+        SELECT ula.courseid,
+               COUNT(DISTINCT ula.userid) AS usercount,
+               MAX(ula.timeaccess) AS lastaccess
+          FROM {user_lastaccess} ula
+          JOIN {course} c ON c.id = ula.courseid
+         WHERE ula.timeaccess > :since
+           AND ula.courseid > 1
+           AND ula.userid > 0
+           AND c.visible = 1
+               $coursefilter
+      GROUP BY ula.courseid
+        ORDER BY usercount DESC, lastaccess DESC
     ";
 
-        return $DB->get_records_sql($sql, ['since' => $since], 0, 50);
+        try {
+            return $DB->get_records_sql($sql, $params, 0, $this->get_record_pool_limit());
+        } catch (dml_exception $e) {
+            debugging('Top active courses visit aggregation failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return [];
+        }
+    }
+
+    /**
+     * Whether enrolment method checks should be ignored.
+     *
+     * @return bool
+     */
+    private function should_ignore_enrolment_methods(): bool {
+        return (bool)get_config('block_topactivecourses', 'ignore_enrolment_methods');
     }
 
     /**
      * Filters out courses that the user is already enrolled in or cannot self-enrol into.
      *
-     * @param array $records List of course activity records.
+     * @param array $records List of course visit records.
      * @param stdClass $user The user to check enrolment against.
      * @return array Filtered list of courses the user can self-enrol into.
      */
@@ -189,7 +257,7 @@ class block_topactivecourses extends block_base {
     /**
      * Renders the course tiles for display.
      *
-     * @param array $records Filtered course activity records.
+     * @param array $records Filtered course visit records.
      * @param int $limit Maximum number of tiles to render.
      * @param stdClass $user The current user, used to check enrolments.
      * @return array Array of HTML strings representing course tiles.
@@ -245,8 +313,42 @@ class block_topactivecourses extends block_base {
             'url' => (new moodle_url('/course/view.php', ['id' => $course->id]))->out(false),
             'image' => $this->get_course_image($course),
             'title' => format_string($course->fullname),
+            'summary' => $this->format_course_summary($course),
+            'visitorlabel' => get_string('participants', 'block_topactivecourses', (int)$rec->usercount),
+            'categoryname' => $this->get_course_category_name($course),
             'tags' => $this->get_course_tags($course->id, $this->get_max_tags_limit()),
         ];
+    }
+
+    /**
+     * Formats and shortens a course summary for compact tiles.
+     *
+     * @param stdClass $course Course object.
+     * @return string Plain summary text.
+     */
+    private function format_course_summary(stdClass $course): string {
+        if (empty($course->summary)) {
+            return '';
+        }
+
+        $context = context_course::instance($course->id);
+        $summary = format_text($course->summary, $course->summaryformat, [
+            'context' => $context,
+            'overflowdiv' => false,
+        ]);
+
+        return shorten_text(trim(strip_tags($summary)), 120);
+    }
+
+    /**
+     * Returns the display name of the course category.
+     *
+     * @param stdClass $course Course object.
+     * @return string Category name.
+     */
+    private function get_course_category_name(stdClass $course): string {
+        $category = core_course_category::get($course->category, IGNORE_MISSING, true);
+        return $category ? format_string($category->name) : '';
     }
 
     /**
